@@ -1,0 +1,26 @@
+FROM jupyter/tensorflow-notebook
+
+MAINTAINER "Vinci Chow <ticoneva@gmail.com>"
+
+USER root
+
+#Jupyerhub other stuff
+ADD . /src/jupyterhub
+WORKDIR /src/jupyterhub
+
+RUN mkdir -p /srv/jupyterhub/
+WORKDIR /srv/jupyterhub/
+EXPOSE 8000
+
+LABEL org.jupyter.service="jupyterhub"
+
+#Set permissions for ssl directory
+RUN mkdir /etc/ssl/eduquant && \
+    sudo chown root:root /etc/ssl/eduquant && \
+    sudo chmod 700 /etc/ssl/eduquant
+    
+#RUN mkdir /default/ && \
+     cd /default/ && \
+     wget -r -nH --cut-dirs=1 -R "index.html*" https://www.eduquant.com/courses/ 
+
+CMD ["jupyterhub"]

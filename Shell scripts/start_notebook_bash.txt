@@ -1,0 +1,1 @@
+ docker run -it  -p 8170:8888 --name=en8170  ticoneva/econ4130-notebook  bash

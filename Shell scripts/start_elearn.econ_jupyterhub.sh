@@ -1,0 +1,1 @@
+docker run -p 8001:8000 -d -v ~/ssl/:/etc/ssl/eduquant/ ticoneva/data-science-jupyterhub  jupyterhub --ssl-key /etc/ssl/eduquant/privkey.pem --ssl-cert /etc/ssl/eduquant/fullchain.pem
