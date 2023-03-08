@@ -1,16 +1,20 @@
 # Using Deepspeed to train a large language model.
 # GPT-J is a six-billion parameter model, which is too large to train even on a
-# single A100 80GB. DeepSpeed allows the training of such model by offloading
-# some components to main memory or SSD. 
-# DeepSeed ZeRO stage 2 offloads optimizer states
-# DeepSeed ZeRO stage 3 offloads model parameters
+# single A100 80GB. DeepSpeed allows the training of such model by:
+# 1. splitting some components across multiple GPUs. 
+# 2. offloading these components to main memory or SSD. 
+# The first is obviously only useful when training with multiple GPUs, while 
+# the second is useful even with one GPU.
+# DeepSpeed has three stages:
+# - ZeRO stage 1 + 2 splits/offloads optimizer states
+# - ZeRO stage 3 splits/offloads model parameters
 # Offloading is CPU intensive, so allocate CPU cores accordingly. 
 # New HF text classification block is added on top of a pretrained GPT-J model.
 # Utilizes early stopping, reloading of best model, learning rate schedule and
 # multi-GPU support. HF trainer has good default settings so we do not have to 
 # provide many settings.
 # 
-# Memory requirement:
+# DeepSpeed memory requirement estimate:
 # https://deepspeed.readthedocs.io/en/latest/memory.html
 #
 # Run on SCRP with A100 GPU and DeepSpeed ZeRO stage 2
