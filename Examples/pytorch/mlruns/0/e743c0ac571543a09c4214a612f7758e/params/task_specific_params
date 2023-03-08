@@ -1,1 +1,0 @@
-{'text-generation': {'do_sample': True, 'max_length': 50, 'temperature': 0.9}}
