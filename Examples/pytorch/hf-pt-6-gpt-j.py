@@ -17,7 +17,7 @@
 # (Set ds_config = "hfpt6-ds2.json")
 # (Change batch_size to 24)
 # conda activate pytorch
-# compute --gpus-per-task=a100 deepspped hf-pt-6-gpt-j.py
+# compute --gpus-per-task=a100 deepspeed hf-pt-6-gpt-j.py
 #
 # Run on SCRP with two RTX 3090 GPU and DeepSpeed ZeRO stage 2
 # (Set ds_config = "hfpt6-ds2.json")
