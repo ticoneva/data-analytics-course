@@ -19,11 +19,11 @@
 # conda activate pytorch
 # compute --gpus-per-task=a100 deepspped hf-pt-6-gpt-j.py
 #
-# Run on SCRP with two RTX 3090 GPU and DeepSpeed ZeRO stage 3
-# (Set ds_config = "hfpt6-ds3.json")
-# (Change batch_size to 24)
+# Run on SCRP with two RTX 3090 GPU and DeepSpeed ZeRO stage 2
+# (Set ds_config = "hfpt6-ds2.json")
+# (Change batch_size to 4)
 # conda activate pytorch
-# compute --gpus-per-task=a100 --mem=100G deepspeed hf-pt-6-gpt-j.py
+# compute --gpus-per-task=rtx3090:2 --mem=160G deepspeed hf-pt-6-gpt-j.py
 #
 # Change log:
 # 2023-3-8 Updated introduction
@@ -38,7 +38,7 @@ cpu_num = 4                             # For batch data processing
 seed = 42                               # Seed for data shuffling
 
 # Deepspeed
-ds_config = "hfpt6-ds3.json"            # Deepspeed configuration file
+ds_config = "hfpt6-ds2.json"            # Deepspeed configuration file
 
 # Storage locations
 hf_dir = None                           # Cache directory (None means HF default)
@@ -113,7 +113,7 @@ training_args = TrainingArguments(output_dir=output_dir,
                                   per_device_train_batch_size=batch_size,
                                   per_device_eval_batch_size=batch_size,
                                   num_train_epochs=epochs,
-                                  fp16=True,
+                                  bf16=True,
                                   deepspeed=ds_config)
 
 # Model
@@ -129,10 +129,6 @@ model.config.pad_token_id = model.config.eos_token_id
 # Freeze weights
 #for param in model.transformer.parameters():
 #    param.requires_grad = False
-
-# RuntimeError: Tensors must be contiguous    
-#for p in model.parameters():
-#    p = p.contiguous()    
 
 # Optimizer
 # HF Trainer defaults to AdamW with linear learning rate warm up and decay. 
