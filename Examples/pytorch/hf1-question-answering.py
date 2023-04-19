@@ -15,6 +15,10 @@ import torch         # Need to import either Tensorflow or PyTorch
 import numpy as np
 import time
 
+# Use GPU if available, otherwise use CPU
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+print(f"Using {device} device")
+
 ### This is your data ###
 # If you use pipeline, you need a list of dictionaries, with each
 # dictionary being one pair of question and context. 
@@ -34,11 +38,10 @@ context = ["CUHK is a university in Hong Kong." for i in range(1000)]
 
 start_t = time.time()
 
-# Set device>=0 to use GPU of that ID
 from transformers import pipeline
 model = pipeline('question-answering', 
                   model=model_name,
-                  device=0)
+                  device=device)
 model(data_dict_list)
 
 end_t = time.time()
@@ -56,10 +59,6 @@ start_t = time.time()
 from transformers import DistilBertForQuestionAnswering,DistilBertTokenizerFast
 model = DistilBertForQuestionAnswering.from_pretrained(model_name)
 tokenizer = DistilBertTokenizerFast.from_pretrained(model_name)
-
-# Use GPU if available, otherwise use CPU
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Using {device} device")
 
 # Move model to GPU
 model = model.to(device)

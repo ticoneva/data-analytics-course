@@ -18,13 +18,13 @@
 # https://deepspeed.readthedocs.io/en/latest/memory.html
 #
 # Run on SCRP with A100 GPU and DeepSpeed ZeRO stage 2
-# (Set ds_config = "hfpt6-ds2.json")
+# (Set ds_config = "hf6-ds2.json")
 # (Change batch_size to 24)
 # conda activate pytorch
 # compute --gpus-per-task=a100 deepspeed hf-pt-6-gpt-j.py
 #
 # Run on SCRP with two RTX 3090 GPU and DeepSpeed ZeRO stage 2
-# (Set ds_config = "hfpt6-ds2.json")
+# (Set ds_config = "hf6-ds2.json")
 # (Change batch_size to 4)
 # conda activate pytorch
 # compute --gpus-per-task=rtx3090:2 --mem=160G deepspeed hf-pt-6-gpt-j.py
@@ -42,7 +42,7 @@ cpu_num = 4                             # For batch data processing
 seed = 42                               # Seed for data shuffling
 
 # Deepspeed
-ds_config = "hfpt6-ds2.json"            # Deepspeed configuration file
+ds_config = "hf6-ds2.json"            # Deepspeed configuration file
 
 # Storage locations
 hf_dir = None                           # Cache directory (None means HF default)
