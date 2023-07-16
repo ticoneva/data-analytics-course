@@ -7,14 +7,15 @@
 #
 # Run on SCRP with one RTX 3060 GPU:
 # conda activate pytorch
-# gpu python hf-pt-3-fine-tune-same-task.py
+# gpu python hf3-fine-tune-same-task.py
 #
-# Run on SCRP with one RTX 3060 GPU:
+# Run on SCRP with one RTX 3090 GPU:
 # conda activate pytorch
-# compute --gpus-per-task=rtx3090 python hf-pt-3-fine-tune-same-task.py
+# compute --gpus-per-task=rtx3090 python hf3-fine-tune-same-task.py
 #
 # Change log:
-# 2023-1-2 Initial version
+# 2023-7-16 Switch to dynamic padding
+# 2023-1-2  Initial version
 
 # Settings
 model_name = "distilbert-base-uncased-finetuned-sst-2-english"  # Pre-trained model to download
@@ -33,8 +34,12 @@ import datetime
 import numpy as np
 import time
 import torch
-from transformers import (AutoTokenizer,DefaultDataCollator,AutoModelForSequenceClassification,
-                          TrainingArguments,Trainer,EarlyStoppingCallback)
+from transformers import (AutoTokenizer,
+                          DataCollatorWithPadding,
+                          AutoModelForSequenceClassification,
+                          TrainingArguments,
+                          Trainer,
+                          EarlyStoppingCallback)
 from datasets import load_dataset,Dataset,DatasetDict
 import evaluate
 
@@ -78,13 +83,16 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForSequenceClassification.from_pretrained(model_name)
 
 # Tokenizer wrapper for parallel processing
+# Padding is done dynamically on each minibtach later on, so we won't pad here
 def encode(examples):
     return tokenizer(examples['text'],
                      truncation=True, 
-                     padding='max_length')
+                     padding=False)
 
 # Tokenizes datasets
+start_t = time.time()
 dataset = dataset.map(encode, batched=True, num_proc=cpu_num)
+print("Time taken by tokenizer:",round(time.time() - start_t,2))
 
 # Function for computing evaluation metric
 metric = evaluate.load("accuracy")
@@ -97,17 +105,21 @@ def compute_metrics(eval_pred):
 es_callback = EarlyStoppingCallback(early_stopping_patience=3)
 
 # HF Trainer
+# Note the use of DataCollatorWithPadding for dynamic padding
 trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=dataset["train"],
     eval_dataset=dataset["valid"],
     compute_metrics=compute_metrics,
-    callbacks=[es_callback]
+    callbacks=[es_callback],
+    data_collator=DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8)
 )
 
 # This starts the actual training
+start_t = time.time()
 trainer.train()
+print("Time taken by trainer:",round(time.time() - start_t,2))
 
 # Evaluate with test set
 eval_output = trainer.evaluate(dataset["test"])

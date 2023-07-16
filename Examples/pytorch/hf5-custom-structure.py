@@ -15,9 +15,10 @@
 #
 # Run on SCRP with two RTX 3090 GPU:
 # conda activate pytorch
-# compute --gpus-per-task=rtx3090:2 python hf-pt-5-custom-structure.py
+# compute --gpus-per-task=rtx3090:2 python hf5-custom-structure.py
 #
 # Change log:
+# 2023-7-16 Switch to dynamic padding
 # 2023-2-10 Initial version
 
 # Settings
@@ -38,7 +39,11 @@ import os
 import datetime
 import numpy as np
 import torch
-from transformers import (AutoTokenizer,TrainingArguments,Trainer,EarlyStoppingCallback)
+from transformers import (AutoTokenizer,
+                          DataCollatorWithPadding,
+                          TrainingArguments,
+                          Trainer,
+                          EarlyStoppingCallback)
 from datasets import load_dataset,Dataset,DatasetDict,load_from_disk
 import evaluate
 from hf5 import BertFourTargets       # This is our custom model
@@ -55,7 +60,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 def encode(examples):
     inputs = tokenizer(examples['text'],
                      truncation=True, 
-                     padding='max_length')
+                     padding=False)
     # Duplicate the target four times for demo purpose
     try:
         inputs['label'] = [[examples['label'][i],
@@ -126,7 +131,8 @@ trainer = Trainer(
     train_dataset=dataset["train"],
     eval_dataset=dataset["valid"],
     compute_metrics=compute_metrics,
-    callbacks=[es_callback]
+    callbacks=[es_callback],
+    data_collator=DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8)
 )
 
 # This starts the actual training

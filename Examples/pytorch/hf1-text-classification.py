@@ -6,7 +6,7 @@
 #
 # Run on SCRP with one RTX 3060 GPU:
 # conda activate pytorch
-# gpu python hf-pt-1-text-classification.py
+# gpu python hf1-text-classification.py
 #
 # Change log:
 # 2022-1-1 Initial version

@@ -14,9 +14,10 @@
 #
 # Run on SCRP with two RTX 3090 GPU:
 # conda activate pytorch
-# compute --gpus-per-task=rtx3090:2 python hf-pt-4-fine-tune-new-task.py
+# compute --gpus-per-task=rtx3090:2 python hf4-fine-tune-new-task.py
 #
 # Change log:
+# 2023-7-16  Switch to dynamic padding
 # 2022-1-1   Typo correction
 # 2022-12-19 Initial version
 
@@ -38,8 +39,13 @@ import os
 import datetime
 import numpy as np
 import torch
-from transformers import (AutoTokenizer,DefaultDataCollator,AutoModelForSequenceClassification,
-                          AutoConfig,TrainingArguments,Trainer,EarlyStoppingCallback)
+from transformers import (AutoTokenizer,
+                          DataCollatorWithPadding,
+                          AutoModelForSequenceClassification,
+                          AutoConfig,
+                          TrainingArguments,
+                          Trainer,
+                          EarlyStoppingCallback)
 from datasets import load_dataset,Dataset,DatasetDict,load_from_disk
 import evaluate
 
@@ -55,7 +61,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 def encode(examples):
     return tokenizer(examples['text'],
                      truncation=True, 
-                     padding='max_length')
+                     padding=False)
 
 if dataset_load_path:
     # Load tokenized dataset
@@ -119,7 +125,8 @@ trainer = Trainer(
     train_dataset=dataset["train"],
     eval_dataset=dataset["valid"],
     compute_metrics=compute_metrics,
-    callbacks=[es_callback]
+    callbacks=[es_callback],
+    data_collator=DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8)
 )
 
 # This starts the actual training

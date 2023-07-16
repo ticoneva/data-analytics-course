@@ -6,37 +6,42 @@
 # The first is obviously only useful when training with multiple GPUs, while 
 # the second is useful even with one GPU.
 # DeepSpeed has three stages:
-# - ZeRO stage 1 + 2 splits/offloads optimizer states
-# - ZeRO stage 3 splits/offloads model parameters
+# - ZeRO stage 1 splits optimizer states
+# - ZeRO stage 2 splits gradient
+# - ZeRO stage 3 splits model parameters
+# Each stage can be combined with ZeRO-Offload to offload data to main memory/SSD.
 # Offloading is CPU intensive, so allocate CPU cores accordingly. 
 # New HF text classification block is added on top of a pretrained GPT-J model.
-# Utilizes early stopping, reloading of best model, learning rate schedule and
-# multi-GPU support. HF trainer has good default settings so we do not have to 
-# provide many settings.
+# Utilizes early stopping, reloading of best model, learning rate schedule,
+# gradient accumulation and multi-GPU support. HF trainer has good default settings 
+# so we do not have to provide many settings.
 # 
 # DeepSpeed memory requirement estimate:
 # https://deepspeed.readthedocs.io/en/latest/memory.html
 #
 # Run on SCRP with A100 GPU and DeepSpeed ZeRO stage 2
 # (Set ds_config = "hf6-ds2.json")
-# (Change batch_size to 24)
+# (Change batch_size to 24 and gradient_accumulation_steps to 1)
 # conda activate pytorch
-# compute --gpus-per-task=a100 deepspeed hf-pt-6-gpt-j.py
+# compute --gpus-per-task=a100 deepspeed hf6-deepspeed.py
 #
 # Run on SCRP with two RTX 3090 GPU and DeepSpeed ZeRO stage 2
 # (Set ds_config = "hf6-ds2.json")
-# (Change batch_size to 4)
+# (Change batch_size to 4, max_length to 256 and gradient_accumulation_steps to 3)
 # conda activate pytorch
-# compute --gpus-per-task=rtx3090:2 --mem=160G deepspeed hf-pt-6-gpt-j.py
+# compute --gpus-per-task=rtx3090:2 --mem=250G deepspeed hf6-deepspeed.py
 #
 # Change log:
-# 2023-3-8 Updated introduction
-# 2023-3-3 Initial version
+# 2023-7-16 Switch to dynamic padding
+# 2023-3-8  Updated introduction
+# 2023-3-3  Initial version
 
 # Settings
 model_name = "EleutherAI/gpt-j-6B"      # Pre-trained model to download
-samples = 100                           # Sample size. None means full sample.
+max_length = 256                        # Maximum number of tokens per sample
+samples = 100                           # Sample size. None means full sample
 batch_size = 4                          # Batch size for EACH GPU
+gradient_accumulation_steps = 3         # No. of batches to accumulate before updating weights
 epochs = 5                              # No. of epochs
 cpu_num = 4                             # For batch data processing
 seed = 42                               # Seed for data shuffling
@@ -55,8 +60,13 @@ import os
 import datetime
 import numpy as np
 import torch
-from transformers import (AutoTokenizer,DefaultDataCollator,AutoModelForSequenceClassification,
-                          AutoConfig,TrainingArguments,Trainer,EarlyStoppingCallback)
+from transformers import (AutoTokenizer,
+                          DataCollatorWithPadding,
+                          AutoModelForSequenceClassification,
+                          AutoConfig,
+                          TrainingArguments,
+                          Trainer,
+                          EarlyStoppingCallback)
 from datasets import load_dataset,Dataset,DatasetDict,load_from_disk
 import evaluate
 
@@ -74,8 +84,8 @@ tokenizer.pad_token = tokenizer.eos_token
 def encode(examples):
     return tokenizer(examples['text'],
                      truncation=True,
-                     padding="max_length", 
-                     max_length=283
+                     padding=False,
+                     max_length=max_length
                     )
 
 if dataset_load_path:
@@ -116,6 +126,7 @@ training_args = TrainingArguments(output_dir=output_dir,
                                   load_best_model_at_end=True,
                                   per_device_train_batch_size=batch_size,
                                   per_device_eval_batch_size=batch_size,
+                                  gradient_accumulation_steps=gradient_accumulation_steps,
                                   num_train_epochs=epochs,
                                   bf16=True,
                                   deepspeed=ds_config)
@@ -154,7 +165,8 @@ trainer = Trainer(
     args=training_args,
     train_dataset=dataset["train"],
     eval_dataset=dataset["valid"],
-    callbacks=[es_callback]
+    callbacks=[es_callback],
+    data_collator=DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8)
 )
 #     compute_metrics=compute_metrics,
 
