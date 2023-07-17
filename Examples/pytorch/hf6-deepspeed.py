@@ -1,4 +1,5 @@
-# Using Deepspeed to train a large language model.
+# Using Deepspeed to train a large language model. Note that you should try LoRA
+# in hf7-lora.py first before trying Deepspeed.
 # GPT-J is a six-billion parameter model, which is too large to train even on a
 # single A100 80GB. DeepSpeed allows the training of such model by:
 # 1. splitting some components across multiple GPUs. 

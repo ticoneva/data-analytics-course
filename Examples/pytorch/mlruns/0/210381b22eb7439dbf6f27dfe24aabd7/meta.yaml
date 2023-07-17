@@ -1,0 +1,15 @@
+artifact_uri: file:///home/users/testuser/courses/ml-course/Examples/pytorch/mlruns/0/210381b22eb7439dbf6f27dfe24aabd7/artifacts
+end_time: 1689533422393
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 210381b22eb7439dbf6f27dfe24aabd7
+run_name: capable-auk-759
+run_uuid: 210381b22eb7439dbf6f27dfe24aabd7
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1689533421737
+status: 3
+tags: []
+user_id: testuser

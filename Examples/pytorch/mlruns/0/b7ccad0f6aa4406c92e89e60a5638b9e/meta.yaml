@@ -1,0 +1,15 @@
+artifact_uri: file:///home/users/testuser/courses/ml-course/Examples/pytorch/mlruns/0/b7ccad0f6aa4406c92e89e60a5638b9e/artifacts
+end_time: 1689559154639
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: b7ccad0f6aa4406c92e89e60a5638b9e
+run_name: /home/users/testuser/large-data/hfpt6
+run_uuid: b7ccad0f6aa4406c92e89e60a5638b9e
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1689559150132
+status: 3
+tags: []
+user_id: testuser
