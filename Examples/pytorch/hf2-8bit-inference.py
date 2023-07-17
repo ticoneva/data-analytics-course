@@ -34,8 +34,7 @@ else:
     device = "cpu"
 
 # Tokenizer
-tokenizer = LlamaTokenizer.from_pretrained(BASE_MODEL,
-                                           force_download=True)
+tokenizer = LlamaTokenizer.from_pretrained(BASE_MODEL)
 
 # Load foundation model
 model = LlamaForCausalLM.from_pretrained(
