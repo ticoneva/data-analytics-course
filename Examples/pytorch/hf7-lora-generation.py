@@ -1,4 +1,4 @@
-# Using LoRA to train a large language model.
+# Using LoRA to train a large language model for text generation.
 # GPT-J is a six-billion parameter model, which is too large to finetune even on a
 # single A100 80GB in native precision. We will utilize two techniques to make
 # the model trainable on a single GPU:
@@ -8,7 +8,7 @@
 # 2. Load foundation model in 8-bit/4-bit: because we are not training the foundation
 #    model, we can low it in lower precision without incurring too much loss in 
 #    performance.
-# Note that 2. is only necessary if you are fine-tuning the model. 1. alone is 
+# Note that 1. is only necessary if you are fine-tuning the model. 2. alone is 
 # sufficient for inference.
 #
 # New HF text classification block is added on top of a pretrained GPT-J model.
@@ -27,6 +27,7 @@
 # compute --gpus-per-task=rtx3090 --mem=250G python hf7-lora.py
 #
 # Change log:
+# 2023-10-27 Minor text correction
 # 2023-7-17  Initial version
 
 # Settings
@@ -131,16 +132,11 @@ training_args = TrainingArguments(output_dir=output_dir,
 quantization_config = BitsAndBytesConfig(load_in_8bit=True,
                                          llm_int8_threshold=6.0)
 
-# Model
-# If you load a model not pretrained for the task you specify,
-# HF will add an appropriate top-level block for you. In this case,
-# you might have to provide some settings, e.g. number of target labels.
-# We also provide the quantization configuration here.
-model = AutoModelForSequenceClassification.from_pretrained(model_name, 
-                                                           num_labels=2,
-                                                           torch_dtype=torch.bfloat16,
-                                                           device_map="auto",
-                                                           quantization_config=quantization_config)
+# Foundation Model
+model = AutoModelForCausalLM.from_pretrained(model_name, 
+                                             torch_dtype=torch.bfloat16,
+                                             device_map="auto",
+                                             quantization_config=quantization_config)
 
 # This is necessary, otherwise you will get:
 # ValueError: Cannot handle batch sizes > 1 if no padding token is defined.
@@ -153,7 +149,7 @@ model.config.pad_token_id = model.config.eos_token_id
 lora_config = LoraConfig(r=lora_r,
                          lora_alpha=lora_alpha,
                          lora_dropout=lora_dropout,
-                         task_type="SEQ_CLS"
+                         task_type="CAUSAL_LM"
                          )
 
 # Add LoRA on top of the foundation model
@@ -165,13 +161,6 @@ model.print_trainable_parameters()
 # Optimizer
 # HF Trainer defaults to AdamW with linear learning rate warm up and decay. 
 # You only need to specify the optimizer if you want to change its default settings.
-
-# Function for computing evaluation metric
-metric = evaluate.load("accuracy")
-def compute_metrics(eval_pred):
-    logits, labels = eval_pred
-    predictions = np.argmax(logits, axis=-1)
-    return metric.compute(predictions=predictions, references=labels)
 
 # Early stopping callback
 es_callback = EarlyStoppingCallback(early_stopping_patience=3)
@@ -185,8 +174,6 @@ trainer = Trainer(
     callbacks=[es_callback],
     data_collator=DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8)
 )
-#     callbacks=[es_callback],
-#     compute_metrics=compute_metrics,
 
 # This starts the actual training
 trainer.train()

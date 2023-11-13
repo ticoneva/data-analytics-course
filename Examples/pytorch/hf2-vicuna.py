@@ -17,15 +17,14 @@
 # 2023-7-17 Initial version
 
 
+# Settings
+model_name = "lmsys/vicuna-7b-v1.3"
+LOAD_8BIT = True
+
 import sys
 import torch
 from peft import PeftModel
 from transformers import LlamaTokenizer, LlamaForCausalLM, GenerationConfig
-
-# Settings
-LOAD_8BIT = True
-model_name = "lmsys/vicuna-7b-v1.3"
-LORA_WEIGHTS = "tloen/alpaca-lora-7b"
 
 # Is GPU available?
 if torch.cuda.is_available():
