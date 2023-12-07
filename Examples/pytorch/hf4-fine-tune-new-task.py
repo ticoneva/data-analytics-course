@@ -30,6 +30,7 @@ cpu_num = 4                             # For batch data processing
 seed = 42                               # Seed for data shuffling
 
 # Storage locations
+model_save_path = "hf4-model"           # Path to save trained model
 hf_dir = None                           # Cache directory (None means HF default)
 dataset_load_path = None                # Load tokenized dataset. Generate it if none.
 dataset_save_path = None                # Save a copy of the tokenized dataset
@@ -134,6 +135,9 @@ trainer.train()
 
 # Evaluate with test set
 trainer.evaluate(dataset["test"])
+
+# Save model
+trainer.save_model(model_save_path)
 
 ### Use model to make prediction on new data ###
 # Create HF Dataset from a list and tokenize the data

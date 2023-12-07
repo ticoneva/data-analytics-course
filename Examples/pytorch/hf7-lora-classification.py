@@ -46,6 +46,7 @@ lora_alpha = 8                          # Learning rate scaling parameter
 lora_dropout = 0                        # Dropout rate for LoRA layers
 
 # Storage locations
+lora_save_path = "hf7-lora"             # LoRA save path
 hf_dir = None                           # Cache directory (None means HF default)
 output_dir = "~/large-data/hfpt6"       # Predictions and checkpoints directory
 dataset_load_path = None                # Load tokenized dataset. Generate it if none.
@@ -194,6 +195,9 @@ trainer.train()
 
 # Evaluate with test set
 trainer.evaluate(dataset["test"])
+
+# Save LoRA
+model.save_pretrained(lora_save_path)
 
 ### Use model to make prediction on new data ###
 # Create HF Dataset from a list and tokenize the data

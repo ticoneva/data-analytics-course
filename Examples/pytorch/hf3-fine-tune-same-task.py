@@ -26,8 +26,12 @@ batch_size = 64
 seed = 42                                                       # Seed for data shuffling
 
 # Storage locations
-log_prefix = "logs/transformers/imdb"   # Tensorboard log location
-hf_dir = None                           # Cache directory (None means HF default)
+# Note that even if you don't save the final, trained model, HF trainer still saves checkpoints
+model_save_path = "hf3-model"               # Path to save trained model
+train_data_path = "../Data/imdb_train.csv"
+test_data_path = "../Data/imdb_test.csv"
+log_prefix = "logs/transformers/imdb"       # Tensorboard log location
+hf_dir = None                               # Cache directory (None means HF default)
 
 import os
 import datetime
@@ -53,7 +57,14 @@ if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
 # Load source data
-dataset = load_dataset("imdb")
+# You can directly load IMDB data from Hugging Face:
+# dataset = load_dataset("imdb")
+# Here we will load a truncated version from csv files:
+dataset = DatasetDict()
+dataset["train"]  = Dataset.from_csv(os.path.abspath(train_data_path), 
+                                     names=['label','text'])
+dataset["train"]  = Dataset.from_csv(os.path.abspath(test_data_path), 
+                                     names=['label','text'])
 
 if samples is not None:
     # Generate small sample
@@ -125,6 +136,9 @@ print("Time taken by trainer:",round(time.time() - start_t,2))
 eval_output = trainer.evaluate(dataset["test"])
 print("Out-of-sample performance:")
 print(eval_output)
+
+# Save model
+trainer.save_model(model_save_path)
 
 ### Use model to make prediction on new data ###
 # Create HF Dataset from a list and tokenize the data
