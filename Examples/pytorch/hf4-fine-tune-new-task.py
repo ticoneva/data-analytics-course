@@ -17,9 +17,10 @@
 # compute --gpus-per-task=rtx3090:2 python hf4-fine-tune-new-task.py
 #
 # Change log:
-# 2023-7-16  Switch to dynamic padding
-# 2022-1-1   Typo correction
-# 2022-12-19 Initial version
+# 2023-12-12  Added save_model
+# 2023-7-16   Switch to dynamic padding
+# 2022-1-1    Typo correction
+# 2022-12-19  Initial version
 
 # Settings
 model_name = "bert-base-uncased"        # Pre-trained model to download
@@ -30,7 +31,10 @@ cpu_num = 4                             # For batch data processing
 seed = 42                               # Seed for data shuffling
 
 # Storage locations
-model_save_path = "hf4-model"           # Path to save trained model
+output_dir = "~/large-data/hf4"         # Predictions and checkpoints directory
+model_save_name = "final"               # Name to use when saving final trained model
+train_data_path = "../../Data/imdb_train.csv"
+test_data_path = "../../Data/imdb_test.csv"
 hf_dir = None                           # Cache directory (None means HF default)
 dataset_load_path = None                # Load tokenized dataset. Generate it if none.
 dataset_save_path = None                # Save a copy of the tokenized dataset
@@ -69,7 +73,14 @@ if dataset_load_path:
     dataset = load_from_disk(dataset_load_path)
 else:
     # Load source data
-    dataset = load_dataset("imdb")    
+    # You can directly load IMDB data from Hugging Face:
+    # dataset = load_dataset("imdb")
+    # Here we will load a truncated version from csv files:
+    dataset = DatasetDict()
+    dataset["train"]  = Dataset.from_csv(os.path.abspath(train_data_path), 
+                                         names=['label','text'])
+    dataset["test"]  = Dataset.from_csv(os.path.abspath(test_data_path), 
+                                         names=['label','text'])
     
     if samples is not None:
         # Generate small sample
@@ -89,9 +100,15 @@ else:
     # HF caches datasets so this is not necessary unless you intend to move the files
     if dataset_save_path is not None:
         dataset.save_to_disk(dataset_save_path)
+        
+# Set up output dir
+output_dir = os.path.expanduser(output_dir)
+if not os.path.isdir(output_dir):
+    os.mkdir(output_dir)     
+model_save_path = os.path.join(output_dir,model_save_name)    
 
 # HF class containing hyperparameters
-training_args = TrainingArguments(output_dir="test_trainer", 
+training_args = TrainingArguments(output_dir=output_dir, 
                                   evaluation_strategy="epoch",
                                   save_strategy="epoch",
                                   load_best_model_at_end=True,
@@ -134,10 +151,13 @@ trainer = Trainer(
 trainer.train()
 
 # Evaluate with test set
-trainer.evaluate(dataset["test"])
+eval_output = trainer.evaluate(dataset["test"])
+print("Out-of-sample performance:")
+print(eval_output)
 
 # Save model
-trainer.save_model(model_save_path)
+if model_save_path is not None:
+    trainer.save_model(model_save_path)
 
 ### Use model to make prediction on new data ###
 # Create HF Dataset from a list and tokenize the data

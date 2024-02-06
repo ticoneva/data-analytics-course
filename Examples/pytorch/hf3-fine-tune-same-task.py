@@ -14,8 +14,9 @@
 # compute --gpus-per-task=rtx3090 python hf3-fine-tune-same-task.py
 #
 # Change log:
-# 2023-7-16 Switch to dynamic padding
-# 2023-1-2  Initial version
+# 2023-12-12  Added save_model
+# 2023-7-16   Switch to dynamic padding
+# 2023-1-2    Initial version
 
 # Settings
 model_name = "distilbert-base-uncased-finetuned-sst-2-english"  # Pre-trained model to download
@@ -27,9 +28,10 @@ seed = 42                                                       # Seed for data 
 
 # Storage locations
 # Note that even if you don't save the final, trained model, HF trainer still saves checkpoints
-model_save_path = "hf3-model"               # Path to save trained model
-train_data_path = "../Data/imdb_train.csv"
-test_data_path = "../Data/imdb_test.csv"
+output_dir = "~/large-data/hf3 "        # Predictions and checkpoints directory
+model_save_name = "final"               # Name to use when saving final trained model
+train_data_path = "../../Data/imdb_train.csv"
+test_data_path = "../../Data/imdb_test.csv"
 log_prefix = "logs/transformers/imdb"       # Tensorboard log location
 hf_dir = None                               # Cache directory (None means HF default)
 
@@ -63,7 +65,7 @@ if not os.path.exists(log_dir):
 dataset = DatasetDict()
 dataset["train"]  = Dataset.from_csv(os.path.abspath(train_data_path), 
                                      names=['label','text'])
-dataset["train"]  = Dataset.from_csv(os.path.abspath(test_data_path), 
+dataset["test"]  = Dataset.from_csv(os.path.abspath(test_data_path), 
                                      names=['label','text'])
 
 if samples is not None:
@@ -79,8 +81,14 @@ dataset["train"] = tv_datasets["train"]
 dataset["valid"] = tv_datasets["test"]
 dataset["test"] = dataset["test"]               
 
+# Set up output dir
+output_dir = os.path.expanduser(output_dir)
+if not os.path.isdir(output_dir):
+    os.mkdir(output_dir) 
+model_save_path = os.path.join(output_dir,model_save_name)
+
 # HF class containing hyperparameters
-training_args = TrainingArguments(output_dir="test_trainer", 
+training_args = TrainingArguments(output_dir=output_dir,  
                                   evaluation_strategy="epoch",
                                   save_strategy="epoch",
                                   load_best_model_at_end=True,
@@ -138,7 +146,8 @@ print("Out-of-sample performance:")
 print(eval_output)
 
 # Save model
-trainer.save_model(model_save_path)
+if model_save_path is not None:
+    trainer.save_model(model_save_path)
 
 ### Use model to make prediction on new data ###
 # Create HF Dataset from a list and tokenize the data

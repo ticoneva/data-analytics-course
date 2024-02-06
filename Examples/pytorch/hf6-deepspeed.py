@@ -24,7 +24,7 @@
 # (Set ds_config = "hf6-ds2.json")
 # (Change batch_size to 24 and gradient_accumulation_steps to 1)
 # conda activate pytorch
-# compute --gpus-per-task=a100 deepspeed hf6-deepspeed.py
+# compute -p a100 --gpus-per-task=a100 --mem=250G deepspeed hf6-deepspeed.py
 #
 # Run on SCRP with two RTX 3090 GPU and DeepSpeed ZeRO stage 2
 # (Set ds_config = "hf6-ds2.json")
@@ -52,7 +52,8 @@ ds_config = "hf6-ds2.json"            # Deepspeed configuration file
 
 # Storage locations
 hf_dir = None                           # Cache directory (None means HF default)
-output_dir = "~/large-data/hfpt6"       # Predictions and checkpoints directory
+output_dir = "~/large-data/hf6"         # Predictions and checkpoints directory
+model_save_name = "final"               # Name to use when saving final trained model
 dataset_load_path = None                # Load tokenized dataset. Generate it if none.
 dataset_save_path = None                # Save a copy of the tokenized dataset
 
@@ -119,6 +120,7 @@ else:
 output_dir = os.path.expanduser(output_dir)
 if not os.path.isdir(output_dir):
     os.mkdir(output_dir)
+model_save_path = os.path.join(output_dir,model_save_name)    
         
 # HF class containing hyperparameters
 training_args = TrainingArguments(output_dir=output_dir, 
@@ -175,7 +177,14 @@ trainer = Trainer(
 trainer.train()
 
 # Evaluate with test set
-trainer.evaluate(dataset["test"])
+eval_output = trainer.evaluate(dataset["test"])
+print("Out-of-sample performance:")
+print(eval_output)
+
+# Save model
+if model_save_path is not None:
+    trainer.save_model(model_save_path)
+
 
 ### Use model to make prediction on new data ###
 # Create HF Dataset from a list and tokenize the data

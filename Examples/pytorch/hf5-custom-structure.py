@@ -18,8 +18,9 @@
 # compute --gpus-per-task=rtx3090:2 python hf5-custom-structure.py
 #
 # Change log:
-# 2023-7-16 Switch to dynamic padding
-# 2023-2-10 Initial version
+# 2023-12-12  Added save_model
+# 2023-7-16   Switch to dynamic padding
+# 2023-2-10   Initial version
 
 # Settings
 model_name = "bert-base-uncased"        # Pre-trained model to download
@@ -30,7 +31,8 @@ cpu_num = 4                             # For batch data processing
 seed = 42                               # Seed for data shuffling
 
 # Storage locations
-model_save_path = "hf5-model"           # Path to save trained model
+output_dir = "~/large-data/hf5"         # Predictions and checkpoints directory
+model_save_name = "final"               # Name to use when saving final trained model
 hf_dir = None                           # Cache directory (None means HF default)
 dataset_load_path = None                # Load tokenized dataset. Generate it if none.
 dataset_save_path = None                # Save a copy of the tokenized dataset
@@ -99,8 +101,14 @@ else:
     if dataset_save_path is not None:
         dataset.save_to_disk(dataset_save_path)
 
+# Set up output dir
+output_dir = os.path.expanduser(output_dir)
+if not os.path.isdir(output_dir):
+    os.mkdir(output_dir)        
+model_save_path = os.path.join(output_dir,model_save_name)    
+
 # HF class containing hyperparameters
-training_args = TrainingArguments(output_dir="test_trainer", 
+training_args = TrainingArguments(output_dir=output_dir, 
                                   evaluation_strategy="epoch",
                                   save_strategy="epoch",
                                   load_best_model_at_end=True,
@@ -140,10 +148,13 @@ trainer = Trainer(
 trainer.train()
 
 # Evaluate with test set
-trainer.evaluate(dataset["test"])
+eval_output = trainer.evaluate(dataset["test"])
+print("Out-of-sample performance:")
+print(eval_output)
 
 # Save model
-trainer.save_model(model_save_path)
+if model_save_path is not None:
+    trainer.save_model(model_save_path)
 
 # Load model
 #model = BertFourTargets.from_pretrained("path_to_save")
