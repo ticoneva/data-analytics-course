@@ -27,6 +27,7 @@
 # compute --gpus-per-task=rtx3090 --mem=250G python hf7-lora.py
 #
 # Change log:
+# 2024-6-12  Compute probabilities and predictions
 # 2023-10-27 Minor text correction
 # 2023-7-17  Initial version
 
@@ -46,9 +47,9 @@ lora_alpha = 8                          # Learning rate scaling parameter
 lora_dropout = 0                        # Dropout rate for LoRA layers
 
 # Storage locations
-lora_save_path = "hf7-lora"             # LoRA save path
+lora_save_path = "~/large-data/hf7/lora" # LoRA save path
 hf_dir = None                           # Cache directory (None means HF default)
-output_dir = "~/large-data/hfpt6"       # Predictions and checkpoints directory
+output_dir = "~/large-data/hf7"       # Predictions and checkpoints directory
 dataset_load_path = None                # Load tokenized dataset. Generate it if none.
 dataset_save_path = None                # Save a copy of the tokenized dataset
 
@@ -209,4 +210,16 @@ new_dataset = new_dataset.map(encode, batched=True, num_proc=cpu_num)
 # Make predictions. Note that trainer returns numpy array instead of PT tensor
 predictions, label_ids, metrics = trainer.predict(new_dataset)
 
-print(predictions[0])
+predictions = predictions[0]
+
+# HF classification models output logits, not probabilities
+# Convert to probability with softmax
+prob = np.exp(predictions)/sum(np.exp(predictions))
+print("Predicted prob.:",prob)
+
+# Converting to probability is not necessary if you just want the predicted class
+# argmax(axis=1) means argmax with each sample
+predicted_class_id = predictions.argmax(axis=1)
+print("Predicted class:", predicted_class_id)
+print("Predicted class label:", [model.config.id2label[id] for id in predicted_class_id])
+

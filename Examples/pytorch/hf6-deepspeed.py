@@ -8,8 +8,8 @@
 # the second is useful even with one GPU.
 # DeepSpeed has three stages:
 # - ZeRO stage 1 splits optimizer states
-# - ZeRO stage 2 splits gradient
-# - ZeRO stage 3 splits model parameters
+# - ZeRO stage 2 splits gradient + optional offloading
+# - ZeRO stage 3 splits model parameters + optional offloading
 # Each stage can be combined with ZeRO-Offload to offload data to main memory/SSD.
 # Offloading is CPU intensive, so allocate CPU cores accordingly. 
 # New HF text classification block is added on top of a pretrained GPT-J model.
@@ -19,6 +19,12 @@
 # 
 # DeepSpeed memory requirement estimate:
 # https://deepspeed.readthedocs.io/en/latest/memory.html
+#
+# Run on SCRP with two A100 GPU and DeepSpeed ZeRO stage 1
+# (Set ds_config = "hf6-ds1.json")
+# (Change batch_size to 24 and gradient_accumulation_steps to 1)
+# conda activate pytorch
+# compute -p a100 --gpus-per-task=a100:2 deepspeed hf6-deepspeed.py
 #
 # Run on SCRP with A100 GPU and DeepSpeed ZeRO stage 2
 # (Set ds_config = "hf6-ds2.json")
@@ -33,6 +39,7 @@
 # compute --gpus-per-task=rtx3090:2 --mem=250G deepspeed hf6-deepspeed.py
 #
 # Change log:
+# 2024-8-23 Added ZeRO stage 1 example
 # 2023-7-16 Switch to dynamic padding
 # 2023-3-8  Updated introduction
 # 2023-3-3  Initial version
@@ -48,7 +55,7 @@ cpu_num = 4                             # For batch data processing
 seed = 42                               # Seed for data shuffling
 
 # Deepspeed
-ds_config = "hf6-ds2.json"            # Deepspeed configuration file
+ds_config = "hf6-ds1.json"            # Deepspeed configuration file
 
 # Storage locations
 hf_dir = None                           # Cache directory (None means HF default)
@@ -60,6 +67,7 @@ dataset_save_path = None                # Save a copy of the tokenized dataset
 # Imports
 import os
 import datetime
+import time
 import numpy as np
 import torch
 from transformers import (AutoTokenizer,
@@ -184,7 +192,6 @@ print(eval_output)
 # Save model
 if model_save_path is not None:
     trainer.save_model(model_save_path)
-
 
 ### Use model to make prediction on new data ###
 # Create HF Dataset from a list and tokenize the data
