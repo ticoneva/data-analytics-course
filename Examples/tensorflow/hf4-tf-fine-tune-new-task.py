@@ -12,11 +12,11 @@
 # Run on SCRP with one RTX 3060 GPU:
 # (Change batch_size to 8)
 # conda activate tensorflow
-# gpu python hf-4-fine-tune-new-task.py
+# gpu python hf4-tf-fine-tune-new-task.py
 #
 # Run on SCRP with two RTX 3090 GPU:
 # conda activate tensorflow
-# compute --gpus-per-task=rtx3090:2 python hf-4-fine-tune-new-task.py
+# compute --gpus-per-task=rtx3090:2 python hf4-tf-fine-tune-new-task.py
 #
 # Change log:
 # 2022-1-1   Typo correction
@@ -42,12 +42,13 @@ dataset_save_path = None                # Save a copy of the tokenized dataset
 # Imports
 import os
 import datetime
+from transformers import AutoTokenizer,DefaultDataCollator,TFAutoModel, AutoConfig
+# Tensorflow must be imported after tranformers, otherwise will crash
 import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input,Dense,Dropout
 from tensorflow.keras.optimizers.schedules import PolynomialDecay
 from tensorflow.keras.optimizers import Adam
-from transformers import AutoTokenizer,DefaultDataCollator,TFAutoModel, AutoConfig
 from datasets import load_dataset,DatasetDict,load_from_disk
 
 # Set Hugging Face directory

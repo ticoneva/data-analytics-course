@@ -3,19 +3,19 @@
 #
 # Run on SCRP with one RTX 3060 GPU:
 # conda activate tensorflow
-# gpu python hf-2-inference-imdb.py
+# gpu python hf2-tf-inference-imdb.py
 #
 # Change log:
 # 2022-12-19 Initial version
 
 # Settings
 model_name = "finiteautomata/bertweet-base-sentiment-analysis"  # Pre-trained model to download
-samples = None                                                  # Sample size. None means full sample.
-cpu_num = 4
-batch_size = 64
-seed = 42                                                       # Seed for data shuffling
+device = "cuda" # 'cpu' or 'cuda' for GPU
+samples = None  # Sample size. None means full sample.
+cpu_num = 4     # Number of processes to start for batch tokenization
+batch_size = 64 
+seed = 42       # Seed for data shuffling
 
-import tensorflow as tf # Need to import either Tensorflow or PyTorch
 import numpy as np
 import time
 from datasets import load_dataset
@@ -35,6 +35,8 @@ if samples is not None:
 # Set up tokenizer and model. This can be copied from each model's card on Hugging Face
 # Tensorflow models starts with 'TF'
 from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
+# Tensorflow must be imported after tranformers, otherwise will crash
+import tensorflow as tf 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = TFAutoModelForSequenceClassification.from_pretrained(model_name)
 

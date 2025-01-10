@@ -3,7 +3,7 @@
 #
 # Run on SCRP with one RTX 3060 GPU:
 # conda activate pytorch
-# gpu python hf-pt-1-question-answering.py
+# gpu python hf2-question-answering.py
 #
 # Change log:
 # 2023-1-1 Initial version

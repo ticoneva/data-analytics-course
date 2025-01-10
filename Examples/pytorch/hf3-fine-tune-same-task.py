@@ -7,14 +7,16 @@
 #
 # Run on SCRP with one RTX 3060 GPU:
 # conda activate pytorch
-# gpu python hf-pt-3-fine-tune-same-task.py
+# gpu python hf3-fine-tune-same-task.py
 #
-# Run on SCRP with one RTX 3060 GPU:
+# Run on SCRP with one RTX 3090 GPU:
 # conda activate pytorch
-# compute --gpus-per-task=rtx3090 python hf-pt-3-fine-tune-same-task.py
+# compute --gpus-per-task=rtx3090 python hf3-fine-tune-same-task.py
 #
 # Change log:
-# 2023-1-2 Initial version
+# 2023-12-12  Added save_model
+# 2023-7-16   Switch to dynamic padding
+# 2023-1-2    Initial version
 
 # Settings
 model_name = "distilbert-base-uncased-finetuned-sst-2-english"  # Pre-trained model to download
@@ -25,16 +27,25 @@ batch_size = 64
 seed = 42                                                       # Seed for data shuffling
 
 # Storage locations
-log_prefix = "logs/transformers/imdb"   # Tensorboard log location
-hf_dir = None                           # Cache directory (None means HF default)
+# Note that even if you don't save the final, trained model, HF trainer still saves checkpoints
+output_dir = "~/large-data/hf3 "        # Predictions and checkpoints directory
+model_save_name = "final"               # Name to use when saving final trained model
+train_data_path = "../../Data/imdb_train.csv"
+test_data_path = "../../Data/imdb_test.csv"
+log_prefix = "logs/transformers/imdb"       # Tensorboard log location
+hf_dir = None                               # Cache directory (None means HF default)
 
 import os
 import datetime
 import numpy as np
 import time
 import torch
-from transformers import (AutoTokenizer,DefaultDataCollator,AutoModelForSequenceClassification,
-                          TrainingArguments,Trainer,EarlyStoppingCallback)
+from transformers import (AutoTokenizer,
+                          DataCollatorWithPadding,
+                          AutoModelForSequenceClassification,
+                          TrainingArguments,
+                          Trainer,
+                          EarlyStoppingCallback)
 from datasets import load_dataset,Dataset,DatasetDict
 import evaluate
 
@@ -48,7 +59,14 @@ if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
 # Load source data
-dataset = load_dataset("imdb")
+# You can directly load IMDB data from Hugging Face:
+# dataset = load_dataset("imdb")
+# Here we will load a truncated version from csv files:
+dataset = DatasetDict()
+dataset["train"]  = Dataset.from_csv(os.path.abspath(train_data_path), 
+                                     names=['label','text'])
+dataset["test"]  = Dataset.from_csv(os.path.abspath(test_data_path), 
+                                     names=['label','text'])
 
 if samples is not None:
     # Generate small sample
@@ -63,8 +81,14 @@ dataset["train"] = tv_datasets["train"]
 dataset["valid"] = tv_datasets["test"]
 dataset["test"] = dataset["test"]               
 
+# Set up output dir
+output_dir = os.path.expanduser(output_dir)
+if not os.path.isdir(output_dir):
+    os.mkdir(output_dir) 
+model_save_path = os.path.join(output_dir,model_save_name)
+
 # HF class containing hyperparameters
-training_args = TrainingArguments(output_dir="test_trainer", 
+training_args = TrainingArguments(output_dir=output_dir,  
                                   evaluation_strategy="epoch",
                                   save_strategy="epoch",
                                   load_best_model_at_end=True,
@@ -78,13 +102,16 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForSequenceClassification.from_pretrained(model_name)
 
 # Tokenizer wrapper for parallel processing
+# Padding is done dynamically on each minibtach later on, so we won't pad here
 def encode(examples):
     return tokenizer(examples['text'],
                      truncation=True, 
-                     padding='max_length')
+                     padding=False)
 
 # Tokenizes datasets
+start_t = time.time()
 dataset = dataset.map(encode, batched=True, num_proc=cpu_num)
+print("Time taken by tokenizer:",round(time.time() - start_t,2))
 
 # Function for computing evaluation metric
 metric = evaluate.load("accuracy")
@@ -97,22 +124,30 @@ def compute_metrics(eval_pred):
 es_callback = EarlyStoppingCallback(early_stopping_patience=3)
 
 # HF Trainer
+# Note the use of DataCollatorWithPadding for dynamic padding
 trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=dataset["train"],
     eval_dataset=dataset["valid"],
     compute_metrics=compute_metrics,
-    callbacks=[es_callback]
+    callbacks=[es_callback],
+    data_collator=DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8)
 )
 
 # This starts the actual training
+start_t = time.time()
 trainer.train()
+print("Time taken by trainer:",round(time.time() - start_t,2))
 
 # Evaluate with test set
 eval_output = trainer.evaluate(dataset["test"])
 print("Out-of-sample performance:")
 print(eval_output)
+
+# Save model
+if model_save_path is not None:
+    trainer.save_model(model_save_path)
 
 ### Use model to make prediction on new data ###
 # Create HF Dataset from a list and tokenize the data

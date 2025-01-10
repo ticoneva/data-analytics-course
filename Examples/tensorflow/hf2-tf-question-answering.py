@@ -2,13 +2,15 @@
 #
 # Run on SCRP with one RTX 3060 GPU:
 # conda activate tensorflow
-# gpu python hf-1-question-answering.py
+# gpu python hf2-tf-question-answering.py
 #
 # Change log:
+# 2023-12-1  Import tensorflow after transformers
 # 2022-12-26 Initial version
 
 # Settings
 model_name = "distilbert-base-cased-distilled-squad"
+device = "cuda" # 'cpu' or 'cuda' for GPU
 
 ### This is your data ###
 # If you use pipeline, you need a list of dictionaries, with each
@@ -24,7 +26,6 @@ data_dict_list = [sample_input for i in range(1000)]
 question = ["Where is CUHK?" for i in range(1000)]
 context = ["CUHK is a university in Hong Kong." for i in range(1000)]
 
-import tensorflow as tf # Need to import either Tensorflow or PyTorch
 import numpy as np
 import time
 
@@ -34,10 +35,12 @@ import time
 start_t = time.time()
 
 # Set device>=0 to use GPU of that ID
+# Tensorflow must be imported after tranformers, otherwise will crash
 from transformers import pipeline
+import tensorflow as tf 
 model = pipeline('question-answering', 
                   model=model_name,
-                  device=0)
+                  device=device)
 model(data_dict_list)
 
 end_t = time.time()

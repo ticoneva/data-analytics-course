@@ -5,11 +5,11 @@
 #
 # Run on SCRP with one RTX 3060 GPU:
 # conda activate tensorflow
-# gpu python hf-3-fine-tune-same-task.py
+# gpu python hf3-tf-fine-tune-same-task.py
 #
 # Run on SCRP with one RTX 3060 GPU:
 # conda activate tensorflow
-# compute --gpus-per-task=rtx3090 python hf-3-fine-tune-same-task.py
+# compute --gpus-per-task=rtx3090 python hf3-tf-fine-tune-same-task.py
 #
 # Change log:
 # 2022-12-19 Initial version
@@ -20,7 +20,7 @@ samples = None                                                  # Sample size. N
 epochs = 10                                                     # No. of training epochs
 learn_rate = 5e-5                                               # Initial learning rate
 cpu_num = 4
-batch_size = 64
+batch_size = 32
 seed = 42                                                       # Seed for data shuffling
 
 # Storage locations
@@ -29,12 +29,12 @@ hf_dir = None                           # Cache directory (None means HF default
 
 import os
 import datetime
-import tensorflow as tf # Need to import either Tensorflow or PyTorch
-from tensorflow.keras.optimizers.schedules import PolynomialDecay
-from tensorflow.keras.optimizers import Adam
 import numpy as np
 import time
 from transformers import DefaultDataCollator
+import tensorflow as tf # Tensorflow must be imported after tranformers, otherwise will crash
+from tensorflow.keras.optimizers.schedules import PolynomialDecay
+from tensorflow.keras.optimizers import Adam
 from datasets import load_dataset,DatasetDict
 
 # Set Hugging Face directory
