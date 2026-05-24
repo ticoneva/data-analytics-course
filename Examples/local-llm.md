@@ -54,7 +54,7 @@ There is usually no need to use a local LLM in this scenario, unless data cannot
 
 ## Scenario 2 - Task-specific LLM
 
-The reason to use a task-specific LLM is speed---an LLM that has been trained to go straight from text to number is going to run much faster. The reason is that the LLM does not need sophisticated language ability to understand your instruction, so the model can be much smaller. Whereas you usually need a 8-billion paramter model to get good instruction following, a 110-million parameter sentiment model often gives sufficiently good result.
+The reason to use a task-specific LLM is speed---an LLM that has been trained to go straight from text to number is going to run much faster. The reason is that the LLM does not need sophisticated language ability to understand your instruction, so the model can be much smaller. Whereas you usually need a 8-billion parameter model to get good instruction following, a 110-million parameter sentiment model often gives sufficiently good result.
 
 1. In a terminal, install the Hugging Face `transformers` library:
 
